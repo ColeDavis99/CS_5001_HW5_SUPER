@@ -9,24 +9,11 @@ def drawGraph(g):
 	plt.axis('off')
 	plt.show()
 
-def DegreeOutput(g):
-	#Init
-	for node in g:	
-		minDegree = g.degree[node]
-		maxDegree = g.degree[node]
-		degreeSum = 0
-		break
-	
-	
-	for node in g:
-		if(g.degree[node] < minDegree):
-			minDegree = g.degree[node]
-		if(g.degree[node] > maxDegree):
-			maxDegree = g.degree[node]
-			
-		degreeSum += g.degree[node]
-	
-	print("Average Degree: ", degreeSum/len(g.nodes))
+def AverageDegree(g):
+    degreeSum = 0
+    for node in g:
+        degreeSum += g.degree[node]
+    print("Average Degree: ", degreeSum/len(g.nodes))
 	
 '''
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -38,12 +25,13 @@ G = nx.readwrite.edgelist.read_edgelist("clean_data.csv", delimiter=",")
 # G = nx.readwrite.adjlist.read_adjlist("hero-network.csv")
 # G = nx.readwrite.adjlist.read_adjlist("test.csv")
 
+
+#STEP 1
 print("Number of nodes: ", end=" ")
 print(len(list(G.nodes)))
 print("Number of edges: ", end=" ")
 print(len(list(G.edges)))
-DegreeOutput(G)
-
+AverageDegree(G)
 
 
 
