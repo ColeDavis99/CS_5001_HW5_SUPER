@@ -5,6 +5,7 @@ import community
 from networkx.algorithms.community import centrality as c
 from collections import defaultdict
 
+#Uses Matplotlib library to output the graph it is passed
 def drawGraph(g):
 	pos = nx.spring_layout(g)
 	plt.figure(figsize=(10,10))
@@ -12,12 +13,29 @@ def drawGraph(g):
 	plt.axis('off')
 	plt.show()
 
+#Returns the average degree of all nodes in a graph
 def AverageDegree(g):
     degreeSum = 0
     for node in g:
         degreeSum += g.degree[node]
     print("Average Degree: ", degreeSum/len(g.nodes))
-	
+
+#Returns cleaned up name of a node. Replace spaces with underscores, and remove all commas, and append "_GROUP"
+def cleanNodeName(n):
+    newName = ""
+    for char in n:
+        if(char == ","):
+            newName += ""
+        elif(char == ";"):
+            newName += ""
+        elif(char == " "):
+            newName += "_"
+        else:
+            newName += char
+    newName += "_GROUP"
+
+    return newName
+
 '''
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
 '''
@@ -52,7 +70,7 @@ for node in partition:
 	else:
 		populationList[partition[node]] += 1
 
-print("\nThere are " + str(numPartitions) + " communities using the Louvain method.")
+print("\nThere are " + str(numPartitions+1) + " communities using the Louvain method.")
 print("The modularity of the Louvain partitioning is " + str(modularity))
 
 
@@ -73,6 +91,41 @@ blockedGraph=blockmodel(G, blocks)
 print("\nBlocked graph has " + str(len(list(blockedGraph.nodes()))) + " nodes.")
 print("Blocked graph has " + str(len(list(blockedGraph.edges()))) + " edges.")
 AverageDegree(blockedGraph)
+
+#STEP 4 
+#For each Louvain community, find the node with the highest degree
+
+#Keys are 0,1,2,...25 and values are a list of the nodes in that community
+communityDict = dict()
+maxDegNodePerCommunity = dict()
+keyList = list(range(numPartitions+1))
+print(keyList)
+
+#Initialize dicts with the community ID
+for key in keyList:
+    communityDict[key] = list()
+    maxDegNodePerCommunity[key] = ""
+
+#Populate the dict with node names, according to which community Louvaine partitioned them to
+for node in partition:
+    communityDict[partition[node]].append(node)
+
+#Store the name of the largest degree node per community
+maxNodeDeg = -1
+for community in communityDict.keys():
+    for node in communityDict[community]:
+        if(G.degree[node] > maxNodeDeg):
+            maxNodeDeg = G.degree[node]
+            maxDegNodePerCommunity[community] = node
+    maxNodeDeg = -1
+
+#Prepare the dictionary to re-name the supernodes to the node with the highest degree in that community
+nameMapping = dict()
+for key in keyList:
+    nameMapping[key] = cleanNodeName(maxDegNodePerCommunity[key])
+
+nx.relabel_nodes(blockedGraph, nameMapping, copy=False)
+
 
 
 '''
