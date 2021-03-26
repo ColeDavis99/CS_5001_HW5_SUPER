@@ -44,9 +44,6 @@ def cleanNodeName(n):
 
 #Read in Data from file
 G = nx.readwrite.edgelist.read_edgelist("clean_data.csv", delimiter=",")
-# G = nx.readwrite.adjlist.read_adjlist("hero-network.csv")
-# G = nx.readwrite.adjlist.read_adjlist("test.csv")
-
 
 #STEP 1
 print("Number of nodes: ", end=" ")
@@ -54,6 +51,10 @@ print(len(list(G.nodes)))
 print("Number of edges: ", end=" ")
 print(len(list(G.edges)))
 AverageDegree(G)
+
+
+
+
 
 #STEP 2 Use the Louvain method to partition the nodes into communities. Output the number of communities found and the modularity of the partitioning.
 partition = community.best_partition(G)
@@ -75,6 +76,9 @@ print("\nThere are " + str(numPartitions+1) + " communities using the Louvain me
 print("The modularity of the Louvain partitioning is " + str(modularity))
 
 
+
+
+
 #STEP 3 Perform blockmodeling on the graph based on the Louvain partitioning from step2. Output the number of nodes, number of edges, and average degree in the blocked graph.
 d = partition
 result = defaultdict(list)
@@ -92,6 +96,10 @@ blockedGraph=blockmodel(G, blocks)
 print("\nBlocked graph has " + str(len(list(blockedGraph.nodes()))) + " nodes.")
 print("Blocked graph has " + str(len(list(blockedGraph.edges()))) + " edges.")
 AverageDegree(blockedGraph)
+
+
+
+
 
 #STEP 4 
 #For each Louvain community, find the node with the highest degree
@@ -129,8 +137,11 @@ for key in keyList:
 nx.relabel_nodes(blockedGraph, nameMapping, copy=False)
 # drawGraph(blockedGraph)
 
-#STEP 5
 
+
+
+
+#STEP 5
 #Write out CSV so neo4j can import it. Also, manually put these headers at top of the csv file: supernode1,supernode2. 
 contents = ""
 nx.readwrite.edgelist.write_edgelist(blockedGraph, "C:/Users/Cole/.Neo4jDesktop/relate-data/dbmss/dbms-c8b10dae-58ca-4177-a7a0-55cf4c1fa27b/import/blocked_graph.csv", delimiter=",", encoding='utf-8', data=False)
@@ -171,118 +182,8 @@ result = session.run('''
     WITH n.name AS name, COLLECT(n) AS nodelist, COUNT(*) AS count
     WHERE count > 1
     CALL apoc.refactor.mergeNodes(nodelist) YIELD node
-    RETURN *
+    RETURN *    
     ''')
-
-#Debug stuff
-# result=session.run("MATCH (n:Node) RETURN n.name AS name")
-# names=[record["name"]for record in result]
-# print(names)
 
 session.close()
 driver.close()
-
-'''
-def CharacteristicPathLength(g):
-	print("\n=============== #2 ===============")
-	print("Average Shortest Path Length: ", nx.average_shortest_path_length(g))
-	
-def Diameter(g):
-	print("\n=============== #3 ===============")
-	print("Diameter: ", nx.diameter(g))
-	
-def CenterAndPeripheral(g):
-	print("\n=============== #4 ===============")
-	print("Center Nodes: ", nx.center(g))
-	print("Peripheral Nodes: ", nx.periphery(g))
-
-	
-#I think you can calculate it if you take the entries in the apsp matrix (minus the ones along the diagonal), sort them, and take the average of the top 90%. Try that on the example we did in class.
-def EffectiveEccentricity(g):
-	print("\n=============== #5 ===============")
-	totalDolphins = len(list(g.nodes))
-	dolphinsToKeep = math.floor(totalDolphins * 0.9)
-
-	#Calculate every shortest path for every dolphin
-	spaths = dict(nx.all_pairs_shortest_path_length(g))
-
-	paths = list()
-	ctr = 0
-	
-	for node1 in spaths:
-		for node2 in spaths[node1]:
-			if(node1 != node2):
-				paths.append(spaths[node1][node2])
-
-	#Sort in descending order
-	paths.sort(reverse=True)
-
-	for i in range(len(paths)):
-		if(paths[i] == 1):
-			ctr = ctr+1
-
-	#Keep top 90% highest values
-	paths = paths[:math.floor(len(paths)*.9)]
-
-	#Average of this list (consisting of top 90% of shortest path values)
-	print("Effective Eccenctricity: ", sum(paths)/len(paths))
-	
-	
-def Density(g):
-	print("\n=============== #6 ===============")
-	print("Density: ", nx.density(g))
-	
-def Transitivity(g):
-	print("\n=============== #8 ===============")
-	print("Transitivity: ", nx.transitivity(g))
-	
-	
-def BetweennessCentrality(g):
-	BC = nx.betweenness_centrality(g, normalized=True)
-	node_color = [5000 * g.degree(v) for v in g]
-	node_size = [v * 10000 for v in BC.values()]
-	
-	plt.figure(figsize=(20,20))
-	nx.draw_networkx(g, with_labels=True, node_color=node_color, node_size=node_size, font_size=9, font_color="black")
-	plt.axis('off')
-	plt.show()
-	
-def EigenvectorCentrality(g):
-	EC = nx.eigenvector_centrality(g)
-	node_color = [5000 * g.degree(v) for v in g]
-	node_size = [v * 6000 for v in EC.values()]
-	
-	plt.figure(figsize=(20,20))
-	nx.draw_networkx(g, with_labels=True, node_color=node_color, node_size=node_size, font_size=9, font_color="black")
-	plt.axis('off')
-	plt.show()
-
-
-def ClosenessCentrality(g):
-	CC = nx.closeness_centrality(g)
-	node_color = [5000 * g.degree(v) for v in g]
-	node_size = [v * 3500 for v in CC.values()]
-	
-	plt.figure(figsize=(20,20))
-	nx.draw_networkx(g, with_labels=True, node_color=node_color, node_size=node_size, font_size=9, font_color="black")
-	plt.axis('off')
-	plt.show()
-
-							
-#1-8 drivers
-DegreeOutput(DolphinGraph)
-CharacteristicPathLength(DolphinGraph)
-Diameter(DolphinGraph)
-CenterAndPeripheral(DolphinGraph)
-EffectiveEccentricity(DolphinGraph)
-Density(DolphinGraph)
-ClusterCoeff(DolphinGraph)
-Transitivity(DolphinGraph)
-
-#9 Drivers
-BetweennessCentrality(DolphinGraph)
-EigenvectorCentrality(DolphinGraph)
-ClosenessCentrality(DolphinGraph)
-
-#drawGraph(DolphinGraph)
-'''
