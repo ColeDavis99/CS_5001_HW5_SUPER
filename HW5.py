@@ -4,6 +4,7 @@ import math
 import community
 from networkx.algorithms.community import centrality as c
 from collections import defaultdict
+from neo4j import GraphDatabase
 
 #Uses Matplotlib library to output the graph it is passed
 def drawGraph(g):
@@ -124,9 +125,62 @@ nameMapping = dict()
 for key in keyList:
     nameMapping[key] = cleanNodeName(maxDegNodePerCommunity[key])
 
+#Relabel the nodes in the blocked graph
 nx.relabel_nodes(blockedGraph, nameMapping, copy=False)
+# drawGraph(blockedGraph)
 
+#STEP 5
 
+#Write out CSV so neo4j can import it. Also, manually put these headers at top of the csv file: supernode1,supernode2. 
+contents = ""
+nx.readwrite.edgelist.write_edgelist(blockedGraph, "C:/Users/Cole/.Neo4jDesktop/relate-data/dbmss/dbms-c8b10dae-58ca-4177-a7a0-55cf4c1fa27b/import/blocked_graph.csv", delimiter=",", encoding='utf-8', data=False)
+
+fin = open("C:/Users/Cole/.Neo4jDesktop/relate-data/dbmss/dbms-c8b10dae-58ca-4177-a7a0-55cf4c1fa27b/import/blocked_graph.csv", "r")
+for line in fin:
+    contents += line
+fin.close()
+
+fout = open("C:/Users/Cole/.Neo4jDesktop/relate-data/dbmss/dbms-c8b10dae-58ca-4177-a7a0-55cf4c1fa27b/import/blocked_graph.csv", "w")
+fout.write("supernode1,supernode2\n" + contents)
+fout.close()
+
+#Get API set up
+uri = "bolt://127.0.0.1:7687"
+driver = GraphDatabase.driver(uri, auth=("neo4j", "cali"), max_connection_lifetime=1000)
+session = driver.session()
+
+#Clean slate neo4j
+session.run('''
+    MATCH (n)
+    DETACH DELETE n
+    ''')
+
+#Create the new graph database via neo4j API by reading in the exported .csv file
+session.run('''
+    LOAD CSV WITH HEADERS FROM 'file:/blocked_graph.csv' AS row
+
+    CREATE(sn1:Node {name: row.supernode1})
+    CREATE(sn2:Node {name: row.supernode2})
+
+    MERGE(sn1)-[:KNOWS]-(sn2)
+    ''')
+
+#Merge nodes together that are named the same
+result = session.run('''
+    MATCH (n:Node)
+    WITH n.name AS name, COLLECT(n) AS nodelist, COUNT(*) AS count
+    WHERE count > 1
+    CALL apoc.refactor.mergeNodes(nodelist) YIELD node
+    RETURN *
+    ''')
+
+#Debug stuff
+# result=session.run("MATCH (n:Node) RETURN n.name AS name")
+# names=[record["name"]for record in result]
+# print(names)
+
+session.close()
+driver.close()
 
 '''
 def CharacteristicPathLength(g):
