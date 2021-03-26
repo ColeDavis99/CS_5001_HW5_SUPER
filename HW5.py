@@ -1,6 +1,9 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import math
+import community
+from networkx.algorithms.community import centrality as c
+from collections import defaultdict
 
 def drawGraph(g):
 	pos = nx.spring_layout(g)
@@ -33,7 +36,43 @@ print("Number of edges: ", end=" ")
 print(len(list(G.edges)))
 AverageDegree(G)
 
+#STEP 2 Use the Louvain method to partition the nodes into communities. Output the number of communities found and the modularity of the partitioning.
+partition = community.best_partition(G)
+modularity = community.modularity(partition, G)
+numPartitions = 0
+populationList = dict()
 
+#Loop through the Louvain partition
+for node in partition:
+	if(partition[node] > numPartitions):		#Get the number of partitions
+		numPartitions = partition[node]
+
+	if(partition[node] not in populationList):	#Count the number of people in each partition
+		populationList[partition[node]] = 1
+	else:
+		populationList[partition[node]] += 1
+
+print("\nThere are " + str(numPartitions) + " communities using the Louvain method.")
+print("The modularity of the Louvain partitioning is " + str(modularity))
+
+
+#STEP 3 Perform blockmodeling on the graph based on the Louvain partitioning from step2. Output the number of nodes, number of edges, and average degree in the blocked graph.
+d = partition
+result = defaultdict(list)
+for key, val in sorted(d.items()):
+    result[val].append(key)
+
+blocks = []
+for i in result:
+    blocks.append(result[i])
+
+exec(open("blockmodel.py").read())
+blockedGraph=blockmodel(G, blocks)
+# drawGraph(blockedGraph)
+
+print("\nBlocked graph has " + str(len(list(blockedGraph.nodes()))) + " nodes.")
+print("Blocked graph has " + str(len(list(blockedGraph.edges()))) + " edges.")
+AverageDegree(blockedGraph)
 
 
 '''
